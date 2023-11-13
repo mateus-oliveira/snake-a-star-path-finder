@@ -3,6 +3,17 @@ from snake.pathfinder import find_path
 from snake.behavior_tree import create_behavior
 from snake.utils import *
 
+SCREEN = Screen()
+SCREEN.setup(SCREEN_SIZE, SCREEN_SIZE)
+SCREEN.register_shape('sprite', ((0, 0), (0, CELL_SIZE), (CELL_SIZE, CELL_SIZE), (CELL_SIZE, 0)))
+SCREEN.title('NPC Snake')
+
+PEN = Pen()
+PEN.hideturtle()
+PEN.penup()
+PEN.shape('sprite')
+PEN.speed('fastest')
+
 
 class Node:
     def __init__(self, x, y, color):
@@ -10,12 +21,8 @@ class Node:
         self.__y = y
         self.__color = color
         
-        pen = Pen()
-        pen.hideturtle()
-        pen.penup()
-        pen.shape('sprite')
+        pen = PEN.clone()
         pen.color(color)
-        pen.speed('fastest')
         self.__pen = pen
 
     @property
@@ -120,25 +127,26 @@ class Snake:
 class Obstacles:
     def __init__(self):
         self.__wall = []
+        self.__pen = PEN.clone()
+        self.__pen.color('black')
 
     @property
     def coords(self):
-        return [node.position for node in self.__wall]
+        return self.__wall
 
     def add(self, x, y):
-        self.__wall.append(Node(x, y, 'black'))
+        self.__wall.append((x, y))
 
     def draw(self):
-        for node in self.__wall:
-            node.draw()
+        for x, y in self.__wall:
+            pen = self.__pen
+            pen.goto(x*CELL_SIZE, y*CELL_SIZE)
+            pen.stamp()
 
 
 class Scene:
     def __init__(self):
-        self._screen = Screen()
-        self._screen.setup(SCREEN_SIZE, SCREEN_SIZE)
-        self._screen.register_shape('sprite', ((0, 0), (0, CELL_SIZE), (CELL_SIZE, CELL_SIZE), (CELL_SIZE, 0)))
-        self._screen.title('Snake Game with A* Algorithm')
+        self._screen = SCREEN
         self._screen.onscreenclick(self.__on_click)
 
         self.started = False
@@ -235,4 +243,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as errors:
+        print ("Errors: ", errors)
