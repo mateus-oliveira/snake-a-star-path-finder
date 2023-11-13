@@ -1,5 +1,5 @@
 class Task:
-    def __init__(self):
+    def __init__(self, tasks: list = None):
         self.SUCCESS = 'SUCCESS'
         self.FAILURE = 'FAILURE'
         self.RUNNING = 'RUNNING'
@@ -14,7 +14,8 @@ class Task:
 #####################################
 
 class Sequence(Task):
-    def __init__(self, tasks:Task):
+    def __init__(self, tasks: list = None):
+        super().__init__(tasks)
         self.__subtasks = tasks
 
     def execute(self, npc):
@@ -26,7 +27,8 @@ class Sequence(Task):
     
     
 class Selection(Task):
-    def __init__(self, tasks:Task):
+    def __init__(self, tasks: list = None):
+        super().__init__(tasks)
         self.__subtasks = tasks
 
     def execute(self, npc):
@@ -35,3 +37,53 @@ class Selection(Task):
             if status != self.FAILURE:
                 return status
         return self.FAILURE
+
+
+
+#################################
+#       SNAKE BEHAVIOR          #
+#################################
+
+class VerticalMoveUp(Task):
+    def execute(self, npc):
+        if npc.goal_exists():
+            return self.FAILURE
+        npc.vertical_waiting_move()
+        return self.SUCCESS
+
+class VerticalMoveDown(Task):
+    def execute(self, npc):
+        if npc.goal_exists():
+            return self.FAILURE
+        npc.vertical_waiting_move(direction=-1)
+        return self.SUCCESS
+
+class FindPathToFood(Task):
+    def execute(self, npc):
+        if npc.path_found():
+            return self.SUCCESS
+        if npc.find_path():
+            return self.RUNNING
+        return self.FAILURE
+
+class FinallyEat(Task):
+    def execute(self, npc):
+        if npc.move():
+            return self.RUNNING
+        return self.SUCCESS
+
+
+def create_behavior():
+    vertical_movement_up = VerticalMoveUp()
+    vertical_movement_down = VerticalMoveDown()
+
+    waiting = Sequence([vertical_movement_up, vertical_movement_down])
+
+    find_path_to_food = FindPathToFood()
+    finally_eat = FinallyEat()
+
+    eat = Sequence([find_path_to_food, finally_eat])
+
+    behavior = Selection([waiting, eat])
+
+    return behavior

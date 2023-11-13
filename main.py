@@ -1,5 +1,6 @@
 from turtle import Pen, Screen
 from snake.pathfinder import find_path
+from snake.behavior_tree import create_behavior
 from snake.utils import *
 
 
@@ -38,22 +39,27 @@ class Node:
 
 
 class Snake:
-    def __init__(self, x=0, y=0):
+    def __init__(self, scene, x=0, y=0):
         self.__color = 'green'
         self.__body = [Node(x, y, self.__color), Node(x, y, self.__color)]
+        self.scene = scene
+        self.path = None
+        self.__behavior = create_behavior()
 
     @property
     def coords(self):
         return [node.position for node in self.__body]
 
-    @property
-    def head(self):
-        return self.__body[-1].position
-
+    def path_found(self):
+        return self.path is not None
+    
     def __add_node_to_body(self):
         last_node = self.__body[-1]
         x, y = last_node.position
         self.__body.append(Node(x, y, self.__color))
+
+    def goal_exists(self):
+        return self.scene.food is not None
 
     def draw(self):
         for node in self.__body:
@@ -63,16 +69,52 @@ class Snake:
         for node in self.__body:
             node.set_position(x, y)
 
-    def move(self, path):
-        if path:
-            for x, y in path:                      
-                head = self.__body[0]
-                head.set_position(x, y)
-                self.__body.pop(0)
-                self.__body.append(head)
-                head.draw()
+    def find_path(self):
+        if self.path_found():
+            return False
+        x_snake, y_snake = self.__body[-1].position
+        i_snake, j_snake = screen_sized_to_grid(x_snake, y_snake)
+
+        x_food, y_food = self.scene.food.position
+        i_food, j_food = screen_sized_to_grid(x_food, y_food)
+
+        self.path = [
+            grid_to_screen_sized(_i, _j)
+            for _i, _j in find_path(
+                grid=self.scene.grid,
+                start=(i_snake, j_snake),
+                goal=(i_food, j_food),
+            )
+        ]
+
+        return True
+    
+    def vertical_waiting_move(self, direction=1):
+        x = -13 if direction > 0 else -14
+        for y in range(-14*direction, 14*direction, direction):
+            self.__move_head(x, y)
+        return True
+            
+    def move(self):
+        if self.path:
+            for x, y in self.path:  
+                self.__move_head(x, y)
  
             self.__add_node_to_body()
+            self.scene.clear_food(self.path)
+            self.path = None
+            return True
+        return False
+
+    def __move_head(self, x, y):                    
+        head = self.__body[0]
+        head.set_position(x, y)
+        self.__body.pop(0)
+        self.__body.append(head)
+        head.draw()
+
+    def update(self):
+        self.__behavior.execute(self)
 
 
 class Obstacles:
@@ -97,23 +139,32 @@ class Scene:
         self._screen.setup(SCREEN_SIZE, SCREEN_SIZE)
         self._screen.register_shape('sprite', ((0, 0), (0, CELL_SIZE), (CELL_SIZE, CELL_SIZE), (CELL_SIZE, 0)))
         self._screen.title('Snake Game with A* Algorithm')
-        self._screen.onscreenclick(self.__on_click_left,  1)
-        self._screen.onscreenclick(self.__on_click_right, 2)
+        self._screen.onscreenclick(self.__on_click)
 
-        self._snake = Snake()
+        self.started = False
+
+        self._snake = Snake(self)
         self._obstacles = Obstacles()
 
         self._grid = []
         
         self._food = None
+        self._screen.ontimer(self.update, 0)
 
+    @property
+    def food(self):
+        return self._food
+
+    @property
+    def grid(self):
+        return self._grid
 
     def __is_valid_move(self, x, y):
         if (x, y) not in self._snake.coords + self._obstacles.coords:
             return True
         return False
 
-    def __on_click_left(self, x, y):
+    def __on_click(self, x, y):
         if self._food:
             return
         
@@ -128,37 +179,23 @@ class Scene:
         self._food = Node(x, y, 'red')
         self._food.draw()
 
-        x_snake, y_snake = self._snake.head
-        i_snake, j_snake = screen_sized_to_grid(x_snake, y_snake)
-
-        path = [
-            grid_to_screen_sized(_i, _j)
-            for _i, _j in find_path(
-                grid=self._grid,
-                start=(i_snake, j_snake),
-                goal=(i, j),
-            )
-        ]
-        self._snake.move(path)
-        
+    def clear_food(self, path):
         self._food.clear()
         self._food = None
-
         x, y = path[0]
         i, j = screen_sized_to_grid(x, y)
         self._grid[i][j] = EMPTY_CHAR
+        x, y = path[-1]
+        i, j = screen_sized_to_grid(x, y)
+        self._grid[i][j] = SNAKE_CHAR
 
-        self.print_grid()
-
-    def __on_click_right(self, x, y):
-        print('botão direito')
 
     # TODO - remover
     def print_grid(self):
         for line in self._grid:
             print(' '.join(line))
 
-    def run(self, path):
+    def start(self, path):
         grid = []
         with open(path, 'r') as file:
             for line in file:
@@ -179,10 +216,22 @@ class Scene:
             self._snake.draw()
             self._obstacles.draw()
 
+            self.started = True
+
+    def update(self):
+        print ('loop')
+
+        if self.started:
+            self._snake.update()
+
+        self._screen.update()
+        self._screen.ontimer(self.update, 100)
+
 
 def main():
     level = Scene()
-    level.run('snake/level.txt')
+    level.start('snake/level.txt')
+    level._screen.mainloop()
 
 
 if __name__ == '__main__':
