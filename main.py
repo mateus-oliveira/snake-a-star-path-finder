@@ -19,8 +19,6 @@ class Node:
     def __init__(self, x, y, color):
         self.__x = x
         self.__y = y
-        self.__color = color
-        
         pen = PEN.clone()
         pen.color(color)
         self.__pen = pen
@@ -65,7 +63,7 @@ class Snake:
         x, y = last_node.position
         self.__body.append(Node(x, y, self.__color))
 
-    def goal_exists(self):
+    def food_exists(self):
         return self.scene.food is not None
 
     def draw(self):
