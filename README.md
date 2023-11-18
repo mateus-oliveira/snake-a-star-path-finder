@@ -17,7 +17,7 @@ Segue abaixo a image da árvore, com todas os seus nós:
 
 ![behavior-tree](./snake-behavior-tree.png)
 
-Note que, se não houver comida no mapa, o comportamento da snake será `WAITING.
+Note que, se não houver comida no mapa, o comportamento da snake será `WAITING`.
 Para alterar o comportamento dela, basta clicar em algum lugar da tela, assim uma comida
 irá aparecer no local clicado.
 
