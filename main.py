@@ -3,6 +3,7 @@ from snake.pathfinder import find_path
 from snake.behavior_tree import create_behavior
 from snake.utils import *
 
+
 SCREEN = Screen()
 SCREEN.setup(SCREEN_SIZE, SCREEN_SIZE)
 SCREEN.register_shape('sprite', ((0, 0), (0, CELL_SIZE), (CELL_SIZE, CELL_SIZE), (CELL_SIZE, 0)))
